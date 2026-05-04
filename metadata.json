@@ -1,0 +1,14 @@
+{
+  "name": "PharmaChain PWA",
+  "description": "A comprehensive pharmaceutical supply chain management platform for Suppliers, Clients, and Drivers.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Real-time Inventory",
+    "Order Management",
+    "Driver Tracking",
+    "Regulatory Compliance"
+  ]
+}
