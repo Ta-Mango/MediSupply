@@ -105,10 +105,15 @@ service cloud.firestore {
         && order.totalAmount is number && order.totalAmount >= 0;
     }
 
-    // --- Inventory Log Rules ---
-    match /inventoryLogs/{logId} {
-      allow read: if hasRole('supplier');
-      allow create: if hasRole('supplier') && request.resource.data.userId == request.auth.uid;
-    }
-  }
-}
+     // --- Inventory Log Rules ---
+     match /inventoryLogs/{logId} {
+       allow read: if hasRole('supplier');
+       allow create: if isVerified() && hasRole('supplier') && request.resource.data.userId == request.auth.uid;
+     }
+
+     // --- Cart Rules ---
+     match /carts/{userId}/items/{itemId} {
+       allow read, write: if isSignedIn() && request.auth.uid == userId && hasRole('client');
+     }
+   }
+ }

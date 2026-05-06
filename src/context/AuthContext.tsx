@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import {
+  onAuthStateChanged,
+  User,
+  signInWithPopup,
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, UserProfile, UserRole } from '../lib/firebase';
 
@@ -7,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  signIn: (role: UserRole) => Promise<void>;
+  signInWithGoogle: (role: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -27,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (docSnap.exists()) {
           setProfile(docSnap.data() as UserProfile);
         } else {
-          // Profile will be created on first login/signup if not exists
           setProfile(null);
         }
       } else {
@@ -39,12 +44,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const signInWithGoogle = async (role: UserRole) => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        role: role,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  };
+
   const signOut = async () => {
     await auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn: async () => {}, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

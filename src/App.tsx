@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SupplierDashboard from './pages/supplier/SupplierDashboard';
@@ -34,33 +35,35 @@ function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode, 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          
-          <Route path="/supplier/*" element={
-            <ProtectedRoute allowedRole="supplier">
-              <SupplierDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/client/*" element={
-            <ProtectedRoute allowedRole="client">
-              <ClientDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/driver/*" element={
-            <ProtectedRoute allowedRole="driver">
-              <DriverDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </BrowserRouter>
+      <CartProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<HomeRedirect />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+
+            <Route path="/supplier/*" element={
+              <ProtectedRoute allowedRole="supplier">
+                <SupplierDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/client/*" element={
+              <ProtectedRoute allowedRole="client">
+                <ClientDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/driver/*" element={
+              <ProtectedRoute allowedRole="driver">
+                <DriverDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </BrowserRouter>
+      </CartProvider>
     </AuthProvider>
   );
 }

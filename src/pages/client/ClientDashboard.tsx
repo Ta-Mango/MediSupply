@@ -1,13 +1,14 @@
 import { Routes, Route } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { 
-  Package2, 
-  ShoppingCart, 
-  History, 
+import {
+  Package2,
+  ShoppingCart,
+  History,
   Search,
   Bell
 } from 'lucide-react';
 import ClientBrowse from './ClientBrowse';
+import CartPage from './CartPage';
 import OrderHistory from './OrderHistory';
 
 export default function ClientDashboard() {
@@ -21,7 +22,7 @@ export default function ClientDashboard() {
     <DashboardLayout navItems={navItems}>
       <Routes>
         <Route index element={<ClientBrowse />} />
-        <Route path="cart" element={<div>Cart Feature Coming Soon</div>} />
+        <Route path="cart" element={<CartPage />} />
         <Route path="orders" element={<OrderHistory />} />
       </Routes>
     </DashboardLayout>

@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { auth, db, UserRole } from '../lib/firebase';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../lib/firebase';
 import { Package2, Truck, ShoppingCart, User as UserIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -10,6 +9,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
+  const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
@@ -21,23 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
-        await setDoc(docRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          role: role,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
+      await signInWithGoogle(role);
       navigate('/');
     } catch (err: any) {
       console.error(err);
