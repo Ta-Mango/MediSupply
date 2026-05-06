@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function getUserData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && getUserData(request.auth.uid).role == role;
+    }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || hasRole('supplier'));
+      allow list: if hasRole('supplier'); // Suppliers can see clients/drivers
+      
+      allow create: if isVerified() && request.auth.uid == userId && isValidUser(request.resource.data);
+      allow update: if isVerified() && request.auth.uid == userId && isValidUser(request.resource.data)
+                    && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'organizationName', 'address', 'phoneNumber', 'updatedAt']));
+    }
+
+    function isValidUser(user) {
+      return user.uid == request.auth.uid
+        && user.email is string
+        && user.role in ['supplier', 'client', 'driver']
+        && user.createdAt is timestamp;
+    }
+
+    // --- Medicine Rules ---
+    match /medicines/{medicineId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && hasRole('supplier') && isValidMedicine(request.resource.data);
+      allow update: if isVerified() && hasRole('supplier') && isValidMedicine(request.resource.data)
+                    && request.resource.data.supplierId == resource.data.supplierId;
+      allow delete: if isVerified() && hasRole('supplier') && resource.data.supplierId == request.auth.uid;
+    }
+
+    function isValidMedicine(med) {
+      return med.name is string && med.name.size() > 0 && med.name.size() <= 200
+        && med.supplierId == request.auth.uid
+        && med.stock is number && med.stock >= 0
+        && med.price is number && med.price >= 0;
+    }
+
+    // --- Order Rules ---
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.supplierId == request.auth.uid || 
+        resource.data.driverId == request.auth.uid
+      );
+      
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.supplierId == request.auth.uid || 
+        resource.data.driverId == request.auth.uid
+      );
+
+      allow create: if isVerified() && hasRole('client') && isValidOrder(request.resource.data)
+                    && request.resource.data.clientId == request.auth.uid
+                    && request.resource.data.status == 'pending';
+
+      allow update: if isVerified() && isValidOrder(request.resource.data) && (
+        // Supplier approving/assigning driver
+        (hasRole('supplier') && resource.data.supplierId == request.auth.uid 
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverId', 'updatedAt'])) ||
+        // Driver updating status/proof
+        (hasRole('driver') && resource.data.driverId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'proofOfDelivery', 'updatedAt'])) ||
+        // Client cancelling
+        (hasRole('client') && resource.data.clientId == request.auth.uid && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
+    }
+
+    function isValidOrder(order) {
+      return order.clientId is string
+        && order.supplierId is string
+        && order.status in ['pending', 'approved', 'rejected', 'shipped', 'delivered', 'cancelled']
+        && order.items is list && order.items.size() > 0 && order.items.size() <= 50
+        && order.totalAmount is number && order.totalAmount >= 0;
+    }
+
+    // --- Inventory Log Rules ---
+    match /inventoryLogs/{logId} {
+      allow read: if hasRole('supplier');
+      allow create: if isVerified() && hasRole('supplier') && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}

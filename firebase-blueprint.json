@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-specific information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["supplier", "client", "driver"] },
+        "organizationName": { "type": "string", "description": "Pharmacy name or Supplier name" },
+        "address": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Medicine": {
+      "title": "Medicine",
+      "description": "Pharma product catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "category": { "type": "string" },
+        "stock": { "type": "number" },
+        "price": { "type": "number" },
+        "unit": { "type": "string", "description": "e.g., Box, Vial, Strip" },
+        "batchNumber": { "type": "string" },
+        "expiryDate": { "type": "string", "format": "date-time" },
+        "requiresPrescription": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "supplierId", "stock", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Purchase order from client to supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "driverId": { "type": "string", "description": "Assigned driver" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "shipped", "delivered", "cancelled"] },
+        "items": { 
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "medicineId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "priceAtOrder": { "type": "number" }
+            }
+          }
+        },
+        "totalAmount": { "type": "number" },
+        "shippingAddress": { "type": "string" },
+        "deliveryNotes": { "type": "string" },
+        "proofOfDelivery": { "type": "string", "description": "URL to signature/photo" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "supplierId", "items", "status", "totalAmount"]
+    },
+    "InventoryLog": {
+      "title": "InventoryLog",
+      "description": "History of stock changes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "medicineId": { "type": "string" },
+        "change": { "type": "number" },
+        "reason": { "type": "string" },
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/medicines/{medicineId}": {
+      "schema": "Medicine",
+      "description": "Product catalog"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Orders across the system"
+    },
+    "/inventoryLogs/{logId}": {
+      "schema": "InventoryLog",
+      "description": "Stock change history"
+    }
+  }
+}
